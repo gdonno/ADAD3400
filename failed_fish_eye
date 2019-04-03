@@ -1,0 +1,75 @@
+import org.openkinect.processing.*;
+
+Kinect2 kinect2;
+
+PShader fisheye;
+PShader glossy;
+PGraphics canvas;
+PImage depthImg;
+PShape ball;
+
+boolean useFishEye = false;
+
+void setup() {
+  size(640, 640, P3D);  
+  canvas = createGraphics(width, height, P3D);
+  kinect2 = new Kinect2(this);
+  kinect2.startDepth();
+  kinect2.start();
+
+  depthImg = new PImage(kinect2.depthWidth, kinect2.depthHeight);
+
+
+ fisheye = loadShader("FishEye.glsl");
+ fisheye.set("aperture", 180.0);
+  
+ glossy = loadShader("GlossyFrag.glsl", "GlossyVert.glsl");  
+  glossy.set("AmbientColour", 0.0, 0.0, 0.0);
+  glossy.set("DiffuseColour", 0.9, 0.2, 0.2);
+  glossy.set("SpecularColour", 1.0, 1.0, 1.0);
+  glossy.set("AmbientIntensity", 1.0);
+  glossy.set("DiffuseIntensity", 1.0);
+  glossy.set("SpecularIntensity", 0.7);
+  glossy.set("Roughness", 0.7);
+  glossy.set("Sharpness", 0.0);
+  
+  ball = createShape(SPHERE, 37);
+  ball.setStroke(false);
+}
+
+void draw() {
+  canvas.beginDraw();
+  canvas.shader(glossy);
+  canvas.noStroke();
+  //canvas.background(255,0,0);
+  canvas.pushMatrix();
+  canvas.rotateY(frameCount * 0.2);
+  canvas.pointLight(204, 204, 204, 1000, 1000, 1000);
+  canvas.popMatrix();
+  for (float x = 0; x < canvas.width + 100; x += 100) {
+    for (float y = 0; y < canvas.height + 100; y += 100) {
+      for (float z = 0; z < 400; z += 100) {
+        canvas.pushMatrix();
+        canvas.translate(x, y, -z);
+        canvas.shape(ball);
+        canvas.popMatrix();
+      }
+    }
+  } 
+  canvas.endDraw(); 
+
+  if (useFishEye == true) {
+    shader(fisheye);
+  }  
+ 
+ image(kinect2.getDepthImage(), 0, 0);{
+
+  int[] rawDepth = kinect2.getRawDepth();
+  
+  for (int i=0; i < rawDepth.length; i++) {
+    if (rawDepth[i] >= minDepth && rawDepth[i] <= maxDepth) {
+      depthImg.pixels[i] = color(255);
+    } else {
+      depthImg.pixels[i] = color(0);
+    }
+}
